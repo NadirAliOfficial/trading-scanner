@@ -194,4 +194,3 @@ This tool is for **decision support only**. It does not place trades automatical
 ## License
 
 MIT
-

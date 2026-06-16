@@ -31,3 +31,8 @@ LTF = "M15"
 DB_PATH = os.getenv("DB_PATH", "trading_scanner.db")
 SCREENSHOTS_DIR = "screenshots"
 ALERT_COOLDOWN_MINUTES = int(os.getenv("ALERT_COOLDOWN_MINUTES", "60"))
+
+# News filter
+NEWS_FILTER_ENABLED = os.getenv("NEWS_FILTER_ENABLED", "true").lower() == "true"
+NEWS_BLOCK_MINUTES_BEFORE = int(os.getenv("NEWS_BLOCK_MINUTES_BEFORE", "30"))
+NEWS_BLOCK_MINUTES_AFTER = int(os.getenv("NEWS_BLOCK_MINUTES_AFTER", "15"))

@@ -7,6 +7,7 @@ from scanner.mt5_connector import connect, disconnect, get_bars, get_account_inf
 from scanner.market_analyzer import analyze_symbol
 from scanner.scoring_engine import score_setup
 from scanner.chart_generator import generate_chart
+from scanner.news_filter import is_news_blackout, fetch_calendar
 from alerts.telegram_bot import send_alert, send_message, send_risk_alert, send_startup_message
 from risk.risk_manager import RiskManager
 from database.db_manager import init_db, save_setup, log_risk
@@ -89,6 +90,18 @@ def scan_once(risk_manager: RiskManager):
             if grade is None:
                 continue
 
+            # News blackout check
+            if config.NEWS_FILTER_ENABLED:
+                blackout, reason = is_news_blackout(symbol)
+                if blackout:
+                    log.info(f"{symbol}: skipped — news blackout ({reason})")
+                    if _cooldown_ok(f"NEWS_{symbol}"):
+                        send_message(
+                            f"🚫 <b>{symbol}</b> alert suppressed\n<i>{reason}</i>\n"
+                            f"Window: -{config.NEWS_BLOCK_MINUTES_BEFORE}m / +{config.NEWS_BLOCK_MINUTES_AFTER}m"
+                        )
+                    continue
+
             cooldown_key = f"{symbol}_{grade}"
             if not _cooldown_ok(cooldown_key):
                 log.info(f"{symbol}: {grade} alert in cooldown, skipping")
@@ -114,6 +127,11 @@ def main():
     except RuntimeError as e:
         log.error(str(e))
         return
+
+    # Pre-warm the calendar cache on startup
+    if config.NEWS_FILTER_ENABLED:
+        fetch_calendar()
+        log.info("Economic calendar loaded")
 
     send_startup_message(config.SYMBOLS)
     risk_manager = RiskManager()

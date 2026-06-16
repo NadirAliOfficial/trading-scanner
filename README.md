@@ -26,6 +26,7 @@ Designed as Phase 1 of a full **Trading Operating System** — no auto-execution
 | Rejection Candle | Hammer, shooting star, bullish/bearish engulfing |
 | Session Filter | London, New York, London/NY overlap, Asian |
 | Risk-to-Reward | Auto-calculated entry, SL, TP1 (2R), TP2 (3R) |
+| **News Filter** | Blocks alerts 30m before / 15m after HIGH-impact events (ForexFactory) |
 
 ### Setup Scoring Engine
 Each setup is dynamically scored (max 14 points) and graded:
@@ -61,15 +62,24 @@ SQLite database storing:
 - Journal entries (daily review responses)
 - Risk log (equity, drawdown history)
 
+### News Filter
+- Fetches the **ForexFactory weekly calendar** (public JSON endpoint, no API key needed)
+- Caches events locally for 1 hour, refreshes automatically
+- Maps each symbol to its currencies (e.g. GBPJPY → GBP + JPY)
+- Suppresses scanner alerts during the blackout window around HIGH-impact events
+- Sends a Telegram notification when an alert is blocked (once per symbol, with cooldown)
+- Window is fully configurable via `.env`
+
 ### Streamlit Dashboard
-Six-page dashboard:
+Seven-page dashboard:
 
 | Page | Contents |
 |------|----------|
-| Dashboard | Today's stats, recent setups, equity trend |
+| Dashboard | Today's stats, recent setups, next high-impact event countdown, equity trend |
+| **Economic Calendar** | Live ForexFactory events, countdown timer, impact filter, timeline chart, scanner blackout indicator |
 | Active Setups | Filterable setup table with chart previews |
 | Trade Journal | Log and close trades |
-| Analytics | Win rate, RR distribution, performance by grade/symbol/session |
+| Analytics | Win rate, RR distribution, cumulative RR curve, performance by grade/symbol/session |
 | Daily Review | End-of-day reflection form (stored for future AI coaching) |
 | Risk Status | Drawdown tracker, consecutive loss chart, constitution rules |
 
@@ -85,7 +95,8 @@ trading-scanner/
 │   ├── mt5_connector.py       # MT5 connection and bar fetching
 │   ├── market_analyzer.py     # Full SMC strategy logic
 │   ├── scoring_engine.py      # Setup scoring and grading
-│   └── chart_generator.py     # Dark-theme candlestick charts (mplfinance)
+│   ├── chart_generator.py     # Dark-theme candlestick charts (mplfinance)
+│   └── news_filter.py         # ForexFactory calendar + blackout logic
 ├── alerts/
 │   └── telegram_bot.py        # Telegram message and photo sending
 ├── risk/
@@ -93,7 +104,7 @@ trading-scanner/
 ├── database/
 │   └── db_manager.py          # SQLite schema + all CRUD operations
 ├── dashboard/
-│   └── app.py                 # Streamlit 6-page dashboard
+│   └── app.py                 # Streamlit 7-page dashboard
 ├── requirements.txt
 └── .env.example
 ```
@@ -160,13 +171,13 @@ streamlit run dashboard/app.py
 | `SCORE_A` | `7` | Min score for A alert |
 | `SCORE_A_PLUS` | `10` | Min score for A+ alert |
 | `SCORE_ELITE` | `12` | Min score for Elite alert |
+| `NEWS_FILTER_ENABLED` | `true` | Enable/disable news blackout |
+| `NEWS_BLOCK_MINUTES_BEFORE` | `30` | Minutes before event to block alerts |
+| `NEWS_BLOCK_MINUTES_AFTER` | `15` | Minutes after event to resume alerts |
 
 ---
 
 ## Roadmap
-
-- [ ] News filter integration (Forex Factory / ForexNews API)
-- [ ] Economic calendar countdown in dashboard
 - [ ] AI coaching feedback based on journal entries
 - [ ] Multi-broker support
 - [ ] Webhook-based Telegram bot for journal commands
